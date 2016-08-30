@@ -2,7 +2,7 @@
 title: "NOAA Reproducible Research"
 author: "Jon Taylor"
 date: "August 30, 2016"
-output: html_document
+output: pdf_document
 ---
 #Synopsis
 #Data Processing
@@ -16,6 +16,7 @@ library(tidyr)
 library(ggplot2)
 library(tibble)
 library(readr)
+library(xtable)
 #library(reshape2)
 
 ```
@@ -78,3 +79,13 @@ dataDamaged <- group_by(data, STATE, EVTYPE) %>%
 
 
 ```
+
+
+
+
+```{R}
+print(xtable(dataHarmed))
+
+
+
+print(xtable(dataDamaged))
