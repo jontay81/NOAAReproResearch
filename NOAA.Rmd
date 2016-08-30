@@ -32,7 +32,7 @@ options( digits = 3 )
 Now let's import the data using read_csv() and then get a list of all the United States, 
 along with Washington DC and Puerto Rico.
 
-```{R, echo=FALSE, message=F, warning=F}
+```{R, echo=TRUE, OUTPUT=FALSE, message=F, warning=F}
 
 #load .csv.bz2 file
 data <- read_csv("StormData.csv.bz2")
@@ -42,7 +42,7 @@ states  <- states[1:52] #subset for States + Washington DC and Puerto Rico
 ```  
   
   
-First, we'll transform the data frame to get the event type with the most casualties for each state
+We'll transform the data frame to get the event type with the most casualties for each state
   
     
 ```{R}
@@ -85,7 +85,8 @@ data$DMG.total <- data$PROPDMG.total + data$CROPDMG.total
 ```
 
 
-Now let's transform the new data just like we did for the casualties above.
+Now let's transform the new data just like we did for the casualties above. 
+Let's also get the top 10 events with the worst economic losses across the nation.
 
 ```{R}
 dataDamaged <- group_by(data, STATE, EVTYPE) %>%
@@ -94,6 +95,10 @@ dataDamaged <- group_by(data, STATE, EVTYPE) %>%
             top_n(1,LOSS) %>%
                 filter(STATE %in% states)
 
+dataLoss<- group_by(data, EVTYPE) %>% 
+    summarise(LOSS=as.double(sum(DMG.total))) %>% 
+    top_n(10, LOSS)
+
 ```
 
 
@@ -101,14 +106,16 @@ dataDamaged <- group_by(data, STATE, EVTYPE) %>%
 
   
   
-Now let's create tables listing the states and their worst event types for human health and economic losses. 
+Let's create tables listing the states and their worst event types for human health and economic losses, along with a barplot of the 10 most costly event types nation wide.  
 
 ```{R}
-kable(dataHarmed, caption="Figure 1. Most harmful storm event types across
+kable(dataHarmed, caption="Most harmful storm event types across
                            the United States by number of casualties.")
 
 
 
-kable(dataDamaged, caption="Figure 2. Most harmful storm event types across
+kable(dataDamaged, caption="Most harmful storm event types across
                            the United States by economic loss.")
+
+barplot(dataLoss$LOSS, names.arg=dataLoss$EVTYPE, ylab="Economic Cost ($)", main="Economic Losses By Event Type in the US", col="red", las=3)
 ```
