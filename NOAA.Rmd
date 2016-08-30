@@ -1,51 +1,66 @@
 ---
-title: "NOAA Reproducible Research"
+title: "NOAA event types with worst human health and economic losses across the United States"
 author: "Jon Taylor"
 date: "August 30, 2016"
 output: pdf_document
 ---
 #Synopsis
+
+The goal of this script is to determine:  
+
+1. The event types most harmful to human health across the United States
+2. The event types with the greatest economic loss across the United States  
+  
 #Data Processing
-#Results
 
+  
+First, lets load all the required packages and set the scientific notation
+options for readability. 
 
-###Loading Packages
 ```{R, warning=F, message=F}
 library(dplyr)
-library(tidyr)
-library(ggplot2)
-library(tibble)
 library(readr)
-library(xtable)
-#library(reshape2)
+library(knitr)
+library(ggplot2)
 
+#set scientific notation options
+options( scipen = 0 )
+options( digits = 3 )
 ```
+  
+    
+Now let's import the data using read_csv() and then get a list of all the United States, 
+along with Washington DC and Puerto Rico.
 
-
-###Loading Data
-
-```{R}
+```{R, echo=FALSE, message=F, warning=F}
 
 #load .csv.bz2 file
 data <- read_csv("StormData.csv.bz2")
 
 states  <-  unique(data$STATE)
 states  <- states[1:52] #subset for States + Washington DC and Puerto Rico 
-```
-
-
-
+```  
+  
+  
+First, we'll transform the data frame to get the event type with the most casualties for each state
+  
+    
 ```{R}
-states  <-  unique(data$STATE)
-states  <- states[1:52] #subset for States + DC and Puerto Rico 
-
 dataHarmed <- group_by(data, STATE, EVTYPE) %>%
-    summarise(harmed=sum(FATALITIES+INJURIES)) %>%
+    summarise(CASUALTIES=sum(FATALITIES+INJURIES)) %>%
         group_by(STATE) %>%
-            top_n(1,harmed) %>%
+            top_n(1,CASUALTIES) %>%
                 filter(STATE %in% states)
         
-```
+```    
+ 
+Now, comes the hardest part. People didn't have great instruction on how to use the 
+exponent fields, so we need to recode all the unique exponent values to common multipliers.
+
+Then we'll multiply the base field by the exponential field for both the Property and Crop damage.
+
+Finally we'll add the two fields together to get the total economic damage.
+
 
 ```{R}
 #Find all the very unique ways people labeled exponents
@@ -70,6 +85,8 @@ data$DMG.total <- data$PROPDMG.total + data$CROPDMG.total
 ```
 
 
+Now let's transform the new data just like we did for the casualties above.
+
 ```{R}
 dataDamaged <- group_by(data, STATE, EVTYPE) %>%
     summarise(LOSS=as.double(sum(DMG.total))) %>%
@@ -77,15 +94,21 @@ dataDamaged <- group_by(data, STATE, EVTYPE) %>%
             top_n(1,LOSS) %>%
                 filter(STATE %in% states)
 
-
 ```
 
 
+#Results
 
+  
+  
+Now let's create tables listing the states and their worst event types for human health and economic losses. 
 
 ```{R}
-print(xtable(dataHarmed))
+kable(dataHarmed, caption="Figure 1. Most harmful storm event types across
+                           the United States by number of casualties.")
 
 
 
-print(xtable(dataDamaged))
+kable(dataDamaged, caption="Figure 2. Most harmful storm event types across
+                           the United States by economic loss.")
+```
