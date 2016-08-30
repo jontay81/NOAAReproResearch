@@ -1,0 +1,80 @@
+---
+title: "NOAA Reproducible Research"
+author: "Jon Taylor"
+date: "August 30, 2016"
+output: html_document
+---
+#Synopsis
+#Data Processing
+#Results
+
+
+###Loading Packages
+```{R, warning=F, message=F}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(tibble)
+library(readr)
+#library(reshape2)
+
+```
+
+
+###Loading Data
+
+```{R}
+
+#load .csv.bz2 file
+data <- read_csv("StormData.csv.bz2")
+
+states  <-  unique(data$STATE)
+states  <- states[1:52] #subset for States + Washington DC and Puerto Rico 
+```
+
+
+
+```{R}
+states  <-  unique(data$STATE)
+states  <- states[1:52] #subset for States + DC and Puerto Rico 
+
+dataHarmed <- group_by(data, STATE, EVTYPE) %>%
+    summarise(harmed=sum(FATALITIES+INJURIES)) %>%
+        group_by(STATE) %>%
+            top_n(1,harmed) %>%
+                filter(STATE %in% states)
+        
+```
+
+```{R}
+#Find all the very unique ways people labeled exponents
+unique(data$PROPDMGEXP)
+unique(data$CROPDMGEXP)
+
+#Convert these to multipliers of base 10. 10^X notation doesn't work because NA coercion
+data$PROPDMGEXP.corr <-  plyr::mapvalues(data$PROPDMGEXP, from=unique(data$PROPDMGEXP), 
+                    to=c("1000", "10000000", "1", "1000000000", "1000000", "1", "1",
+                         "100000", "1000000", "1", "10000", "100", "1000", "100",
+                         "10000000","100", "1", "10", "100000000"))
+
+data$CROPDMGEXP.corr <-  plyr::mapvalues(data$CROPDMGEXP, from=unique(data$CROPDMGEXP), 
+                    to=c("1", "1000000", "1000", "1000000", "1000000000", "", "", "1000", "100"))
+
+#Now multiply the base and exponent columns to get the total
+data$PROPDMG.total <- as.double(data$PROPDMG * as.numeric(data$PROPDMGEXP.corr))
+data$CROPDMG.total <- as.double(data$CROPDMG * as.numeric(data$PROPDMGEXP.corr))
+
+#And add the two together to get total damage from the storm
+data$DMG.total <- data$PROPDMG.total + data$CROPDMG.total
+```
+
+
+```{R}
+dataDamaged <- group_by(data, STATE, EVTYPE) %>%
+    summarise(LOSS=as.double(sum(DMG.total))) %>%
+        group_by(STATE) %>%
+            top_n(1,LOSS) %>%
+                filter(STATE %in% states)
+
+
+```
