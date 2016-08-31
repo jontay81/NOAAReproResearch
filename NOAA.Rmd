@@ -32,7 +32,7 @@ options( digits = 3 )
 Now let's import the data using read_csv() and then get a list of all the United States, 
 along with Washington DC and Puerto Rico.
 
-```{R, echo=TRUE, OUTPUT=FALSE, message=F, warning=F}
+```{R, echo=TRUE, OUTPUT=FALSE, message=F, warning=F, cache=TRUE}
 
 #load .csv.bz2 file
 data <- read_csv("StormData.csv.bz2")
@@ -74,7 +74,8 @@ data$PROPDMGEXP.corr <-  plyr::mapvalues(data$PROPDMGEXP, from=unique(data$PROPD
                          "10000000","100", "1", "10", "100000000"))
 
 data$CROPDMGEXP.corr <-  plyr::mapvalues(data$CROPDMGEXP, from=unique(data$CROPDMGEXP), 
-                    to=c("1", "1000000", "1000", "1000000", "1000000000", "", "", "1000", "100"))
+                    to=c("1", "1000000", "1000", "1000000", "1000000000", 
+                         "", "", "1000", "100"))
 
 #Now multiply the base and exponent columns to get the total
 data$PROPDMG.total <- as.double(data$PROPDMG * as.numeric(data$PROPDMGEXP.corr))
@@ -96,8 +97,9 @@ dataDamaged <- group_by(data, STATE, EVTYPE) %>%
                 filter(STATE %in% states)
 
 dataLoss<- group_by(data, EVTYPE) %>% 
-    summarise(LOSS=as.double(sum(DMG.total))) %>% 
-    top_n(10, LOSS)
+    filter(STATE %in% states) %>%
+        summarise(LOSS=as.double(sum(DMG.total))) %>% 
+            top_n(10, LOSS)
 
 ```
 
@@ -117,5 +119,7 @@ kable(dataHarmed, caption="Most harmful storm event types across
 kable(dataDamaged, caption="Most harmful storm event types across
                            the United States by economic loss.")
 
-barplot(dataLoss$LOSS, names.arg=dataLoss$EVTYPE, ylab="Economic Cost ($)", main="Economic Losses By Event Type in the US", col="red", las=3)
+barplot(dataLoss$LOSS, names.arg=dataLoss$EVTYPE, ylab="Economic Cost ($)", 
+        main="Economic Losses By Event Type in the US", col="red", cex.names=0.3,
+        las=3)
 ```
